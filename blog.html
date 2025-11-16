@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Garden of Words</title>
+  <style>
+    :root{
+      --cream: #f7f1e9;
+      --rose: #f3b4c7;
+      --lavender: #b7a6e1;
+      --peach: #f6c27a;
+      --leaf: #6fa56f;
+      --text: #3a3a3a;
+      --card: rgba(255,255,255,0.94);
+      --border: #e8c4d6;
+    }
+
+    body{
+      font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+      background-color: var(--cream);
+      background-image: url('diseno-bordes-bodas-acuarela_23-2151179956.avif');
+      background-repeat: no-repeat;
+      background-size: cover;
+      background-position: center;
+      color: var(--text);
+      margin: 0;
+      padding: 30px 20px 80px;
+    }
+
+    header {
+      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.9));
+      backdrop-filter: blur(4px);
+      padding: 22px;
+      text-align: center;
+      border-bottom: 3px solid var(--border);
+      border-radius: 12px;
+      max-width: 900px;
+      margin: 0 auto 18px;
+    }
+
+    h1 { color: #8a3f61; margin: 0; font-size: 2.2rem; font-weight: 700; }
+
+    .container { max-width: 900px; margin: 18px auto; background: var(--card); padding: 18px; border-radius: 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.06); border: 1px solid var(--border); }
+
+    label{display:block;margin-top:8px;color:var(--leaf);font-weight:600}
+
+    input, textarea { width: 100%; padding: 12px; margin-top: 8px; border: 2px solid rgba(167,128,147,0.35); border-radius: 10px; outline: none; font-size: 15px; background: #fff; color: var(--text); }
+    textarea { height: 140px; resize: vertical; }
+
+    .btn { background: var(--rose); color: white; padding: 10px 16px; border: none; border-radius: 10px; cursor: pointer; margin-top: 12px; font-size: 15px; transition: .16s; }
+    .btn:hover{ background: #e892b0 }
+
+    .post { background: linear-gradient(180deg,#ffffff,#fffaf9); padding: 18px; margin-top: 18px; border-radius: 12px; border: 1px solid var(--border); }
+
+    .post-title { font-size: 1.4rem; margin-bottom: 6px; color:#8a3f61; font-weight:700 }
+    .date { color: #7a6c6c; font-size: .9rem; margin-bottom: 8px }
+    .post img { max-width:100%; display:block; margin-top:10px; border-radius:10px; border:1px solid var(--border) }
+
+    .post-footer{ margin-top:12px; display:flex; gap:8px; flex-wrap:wrap }
+    .btn-small{ padding:8px 12px; font-size:14px; border-radius:8px }
+
+    @media (max-width:640px){ body{ padding:18px; } header{ padding:14px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🌸 Garden of Words 🌸</h1>
+  </header>
+
+  <div class="container" id="editor">
+    <h2>Crear nueva entrada</h2>
+    <label for="titleInput">Título</label>
+    <input id="titleInput" placeholder="Título de la entrada" />
+    <label for="contentInput">Contenido</label>
+    <textarea id="contentInput" placeholder="Contenido..."></textarea>
+    <label for="imageInput">Imagen (opcional, max 2 MB)</label>
+    <input id="imageInput" type="file" accept="image/*" />
+    <button class="btn" id="publishBtn">Publicar</button>
+    <div style="margin-top:10px;color:#6b705c;font-size:13px">
+      La imagen de fondo usa: <code>diseno-bordes-bodas-acuarela_23-2151179956.avif</code>. Coloca ese archivo en la misma carpeta que este HTML.
+    </div>
+  </div>
+
+  <div class="container" id="postsContainer"></div>
+
+  <script>
+    // --- utilidades ---
+    function escapeHtml(str){
+      if(!str) return '';
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    // cargar posts desde localStorage
+    let posts = [];
+    try { posts = JSON.parse(localStorage.getItem('blogPosts') || '[]'); if(!Array.isArray(posts)) posts = []; } catch(e){ posts = []; }
+
+    function save(){ try { localStorage.setItem('blogPosts', JSON.stringify(posts)); } catch(e){ console.warn('No se pudo guardar en localStorage', e); } }
+
+    function render(){
+      const container = document.getElementById('postsContainer');
+      container.innerHTML = '';
+      posts.forEach((p, index) => {
+        const postDiv = document.createElement('div');
+        postDiv.className = 'post';
+
+        const titleHtml = '<div class="post-title">' + escapeHtml(p.title || '') + '</div>';
+        const dateHtml  = '<div class="date">' + escapeHtml(p.date || '') + '</div>';
+        const contentHtml = '<div>' + (escapeHtml(p.content || '').replace(/\n/g,'<br>')) + '</div>';
+        const imageHtml = p.image ? '<img src="' + escapeHtml(p.image) + '" alt="imagen" />' : '';
+
+        // botones por entrada
+        const deleteBtn = '<button class="btn btn-small" style="background:var(--lavender);color:#fff" data-index="' + index + '">Eliminar</button>';
+
+        postDiv.innerHTML = titleHtml + dateHtml + contentHtml + imageHtml + '<div class="post-footer">' + deleteBtn + '</div>';
+        container.appendChild(postDiv);
+      });
+
+      // asignar handlers a botones eliminar
+      container.querySelectorAll('button[data-index]').forEach(btn => {
+        btn.addEventListener('click', function(){
+          const i = Number(this.getAttribute('data-index'));
+          if(!Number.isFinite(i)) return;
+          if(!confirm('¿Eliminar esta entrada?')) return;
+          posts.splice(i,1);
+          save();
+          render();
+        });
+      });
+    }
+
+    function pushPost(title, content, image){ posts.unshift({ title: title, content: content, image: image, date: new Date().toLocaleString() }); save(); render(); }
+
+    // manejar publicación con lectura segura de archivo
+    document.getElementById('publishBtn').addEventListener('click', function (ev){
+      ev.preventDefault();
+      const title = document.getElementById('titleInput').value.trim();
+      const content = document.getElementById('contentInput').value.trim();
+      const file = document.getElementById('imageInput').files[0];
+
+      if(!title || !content){ alert('Título y contenido son obligatorios.'); return; }
+
+      if(file){
+        if(file.size > 2_000_000){ alert('La imagen debe ser menor a 2 MB.'); return; }
+        const reader = new FileReader();
+        reader.onload = function(e){ pushPost(title, content, e.target.result); };
+        reader.onerror = function(){ alert('Error al leer la imagen.'); };
+        reader.readAsDataURL(file);
+      } else {
+        pushPost(title, content, null);
+      }
+
+      // limpiar formulario
+      document.getElementById('titleInput').value = '';
+      document.getElementById('contentInput').value = '';
+      document.getElementById('imageInput').value = '';
+    });
+
+    // render inicial
+    render();
+  </script>
+</body>
+</html>
