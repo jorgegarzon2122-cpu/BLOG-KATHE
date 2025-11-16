@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Blog Kathe — Publicable</title>
+  <style>
+    :root{--cream:#f7f1e9;--rose:#f3b4c7;--accent:#8a3f61;--muted:#6b705c}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;background:var(--cream);color:#222}
+    .wrap{max-width:960px;margin:28px auto;padding:20px}
+    header{background:rgba(255,255,255,0.92);padding:18px;border-radius:12px;border:1px solid #efe0e6;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,0.05)}
+    header h1{margin:0;color:var(--accent)}
+
+    .editor{margin-top:18px;background:#fff;padding:16px;border-radius:12px;border:1px solid #efe0e6}
+    label{display:block;margin-top:8px;color:var(--muted);font-weight:600}
+    input[type=text],textarea,input[type=file]{width:100%;padding:10px;margin-top:8px;border-radius:8px;border:1px solid #e6d3de}
+    textarea{min-height:120px;resize:vertical}
+    .row{display:flex;gap:8px;align-items:center;margin-top:10px}
+    .btn{background:var(--rose);color:white;padding:10px 14px;border-radius:10px;border:none;cursor:pointer}
+    .btn.ghost{background:transparent;border:1px solid #e6d3de;color:var(--muted)}
+
+    .progress{width:100%;height:12px;background:#eee;border-radius:8px;overflow:hidden;margin-top:10px;display:none}
+    .progress > i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#8a3f61,#f3b4c7)}
+
+    .posts{margin-top:18px;display:grid;gap:12px}
+    .post{background:#fff;padding:14px;border-radius:12px;border:1px solid #efe0e6}
+    .post h3{margin:0;color:var(--accent)}
+    .meta{font-size:13px;color:var(--muted);margin-top:6px}
+    .content{margin-top:8px;white-space:pre-wrap}
+    .post .actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+    a.file-link{display:inline-block;padding:8px 10px;border-radius:8px;background:#f5f0f6;color:var(--accent);text-decoration:none}
+
+    footer{margin-top:20px;text-align:center;color:var(--muted);font-size:14px}
+
+    @media (max-width:640px){.row{flex-direction:column}.btn{width:100%}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Blog Kathe — Inglés</h1>
+      <div class="meta">Publica entradas y sube archivos (hasta 10 MB)</div>
+    </header>
+
+    <section class="editor">
+      <label for="title">Título</label>
+      <input id="title" type="text" placeholder="Título de la entrada" />
+
+      <label for="content">Contenido</label>
+      <textarea id="content" placeholder="Escribe tu entrada..."></textarea>
+
+      <label for="file">Archivo (opcional, máximo 10 MB)</label>
+      <input id="file" type="file" />
+
+      <div class="progress" id="progressBox"><i id="progressBar"></i></div>
+
+      <div class="row">
+        <button id="publish" class="btn">Publicar</button>
+        <button id="clearForm" class="btn ghost">Limpiar</button>
+      </div>
+    </section>
+
+    <section class="posts" id="posts"></section>
+
+    <footer>Hecho con ❤️ · Asegúrate de que las reglas de Firestore/Storage permitan tu acceso.</footer>
+  </div>
+
+  <script type="module">
+    // Firebase imports
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+    // --- Config (tuya) ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyClNq5xfMuRpegRKntdtQeFFa-GyPnsUAc",
+      authDomain: "blog-kathe.firebaseapp.com",
+      projectId: "blog-kathe",
+      storageBucket: "blog-kathe.firebasestorage.app",
+      messagingSenderId: "250193338842",
+      appId: "1:250193338842:web:e140bdb9c897944fcfe0e3",
+      measurementId: "G-2MSFW2C966"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+    const postsCol = collection(db, 'posts');
+
+    // Elements
+    const titleEl = document.getElementById('title');
+    const contentEl = document.getElementById('content');
+    const fileEl = document.getElementById('file');
+    const publishBtn = document.getElementById('publish');
+    const clearFormBtn = document.getElementById('clearForm');
+    const postsEl = document.getElementById('posts');
+    const progressBox = document.getElementById('progressBox');
+    const progressBar = document.getElementById('progressBar');
+
+    // Helpers
+    function escapeHtml(s){
+      if (!s) return '';
+      return String(s).replace(/[&<>"']/g, function(m){
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];
+      });
+    }
+    function nl2br(s){
+      return String(s).replace(/\n/g, '<br>');
+    }
+
+    // Load posts
+    async function loadPosts(){
+      postsEl.innerHTML = '';
+      try{
+        const snap = await getDocs(postsCol);
+        const docs = [];
+        snap.forEach(d => docs.push({id:d.id, ...d.data()}));
+        // show newest first
+        docs.reverse();
+        for(const p of docs){
+          const node = document.createElement('article');
+          node.className = 'post';
+
+          const h = document.createElement('h3'); h.textContent = p.title || '(sin título)'; node.appendChild(h);
+          const m = document.createElement('div'); m.className='meta'; m.textContent = p.createdAt || ''; node.appendChild(m);
+          const c = document.createElement('div'); c.className='content'; c.innerHTML = nl2br(escapeHtml(p.content||'')); node.appendChild(c);
+
+          if(p.fileUrl){
+            const a = document.createElement('a');
+            a.href = p.fileUrl;
+            a.target='_blank';
+            a.className='file-link';
+            a.textContent='📄 Descargar archivo';
+            node.appendChild(a);
+          }
+
+          const actions = document.createElement('div'); actions.className='actions';
+          const del = document.createElement('button'); del.className='btn ghost'; del.textContent='Eliminar';
+          del.addEventListener('click', async ()=>{
+            if(!confirm('¿Eliminar esta entrada?')) return;
+            try{ await deleteDoc(doc(db,'posts',p.id)); loadPosts(); }
+            catch(e){ console.error(e); alert('No se pudo eliminar'); }
+          });
+          actions.appendChild(del);
+          node.appendChild(actions);
+
+          postsEl.appendChild(node);
+        }
+      }catch(err){
+        console.error('loadPosts',err);
+        postsEl.innerHTML = '<div style="color:#900">Error al cargar entradas</div>';
+      }
+    }
+
+    // Upload + publish
+    publishBtn.addEventListener('click', async ()=>{
+      const title = titleEl.value.trim();
+      const content = contentEl.value.trim();
+      if(!title || !content){ alert('Título y contenido obligatorios'); return; }
+
+      let fileUrl = null;
+
+      if(fileEl.files && fileEl.files[0]){
+        const file = fileEl.files[0];
+        // limit 10 MB
+        if(file.size > 10 * 1024 * 1024){ alert('El archivo supera 10 MB'); return; }
+
+        const path = `uploads/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+        const storageRef = ref(storage, path);
+        const uploadTask = uploadBytesResumable(storageRef, file);
+
+        progressBox.style.display = 'block'; progressBar.style.width='0%';
+
+        try{
+          await new Promise((resolve,reject)=>{
+            uploadTask.on('state_changed', snapshot=>{
+              const percent = (snapshot.bytesTransferred/snapshot.totalBytes)*100;
+              progressBar.style.width = percent + '%';
+            }, err=>{ reject(err); }, ()=>{ resolve(); });
+          });
+          fileUrl = await getDownloadURL(storageRef);
+        }catch(uploadErr){
+          console.error('upload', uploadErr);
+          alert('Error subiendo el archivo. Revisa la consola.');
+          progressBox.style.display = 'none';
+          progressBar.style.width = '0%';
+          return;
+        }
+
+        progressBox.style.display = 'none'; progressBar.style.width='0%';
+      }
+
+      try{
+        await addDoc(postsCol, { title, content, fileUrl: fileUrl||null, createdAt: new Date().toLocaleString() });
+        titleEl.value=''; contentEl.value=''; fileEl.value='';
+        loadPosts();
+      }catch(e){
+        console.error('publish',e);
+        alert('No se pudo publicar');
+      }
+    });
+
+    clearFormBtn.addEventListener('click', ()=>{ titleEl.value=''; contentEl.value=''; fileEl.value=''; progressBox.style.display='none'; progressBar.style.width='0%'; });
+
+    // init
+    loadPosts();
+  </script>
+</body>
+</html>
