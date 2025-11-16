@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Blog Kathe</title>
+<style>
+body {
+margin: 0;
+padding: 0;
+font-family: Arial, sans-serif;
+background: url('fondo.jpg') no-repeat center center fixed;
+background-size: cover;
+backdrop-filter: blur(3px);
+}
+
+
+.container {
+max-width: 900px;
+margin: 40px auto;
+background: rgba(255,255,255,0.9);
+padding: 20px;
+border-radius: 20px;
+box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+
+h1 {
+text-align: center;
+color: #444;
+}
+
+
+label {
+font-weight: bold;
+}
+
+
+input, textarea {
+width: 100%;
+padding: 10px;
+border-radius: 10px;
+margin-bottom: 12px;
+border: 1px solid #ccc;
+}
+
+
+button {
+padding: 10px 15px;
+background: #ff7f9c;
+border: none;
+color: white;
+border-radius: 10px;
+cursor: pointer;
+font-weight: bold;
+transition: 0.3s;
+}
+
+
+button:hover { background: #ff5c82; }
+
+
+.post {
+background: #fff;
+padding: 15px;
+border-radius: 15px;
+margin-top: 20px;
+box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+}
+
+
+.post-title {
+font-size: 22px;
+font-weight: bold;
+}
+
+
+.delete-btn {
+background: #ff4d4d;
+}
+
+
+.delete-btn:hover {
+background: #d93636;
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Blog de Inglés - Kathe</h1>
+
+
+<label>Archivo (máx 10 MB)</label>
+<input type="file" id="fileInput" />
+
+
+<div id="progressBarContainer" style="width:100%; background:#ddd; border-radius:10px; margin:10px 0; display:none;">
+<div id="progressBar" style="height:15px; width:0%; background:#4caf50; border-radius:10px;"></div>
+</div>
+
+
+<label>Título</label>
+<input type="text" id="titleInput" placeholder="Título del post..." />
+
+
+<label>Contenido</label>
+<textarea id="contentInput" placeholder="Escribe algo..." rows="4"></textarea>
+</html>
