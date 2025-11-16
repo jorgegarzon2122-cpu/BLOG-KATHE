@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Prueba Botón Publicar</title>
+<style>
+  body { font-family: Arial, sans-serif; background:#f7f1e9; padding:40px; }
+  .editor { background:#fff; padding:20px; border-radius:12px; border:1px solid #ccc; max-width:400px; margin:auto; }
+  label { display:block; margin-top:10px; font-weight:bold; }
+  input[type=text], textarea { width:100%; padding:8px; margin-top:5px; border-radius:6px; border:1px solid #ccc; }
+  .row { margin-top:15px; display:flex; gap:10px; flex-wrap:wrap; }
+  .btn { background:#f3b4c7; color:white; border:none; padding:10px 14px; border-radius:8px; cursor:pointer; }
+  .btn:disabled { opacity:0.6; cursor:not-allowed; }
+</style>
+</head>
+<body>
+
+<div class="editor">
+  <label for="title">Título</label>
+  <input type="text" id="title" placeholder="Título de la entrada">
+
+  <label for="content">Contenido</label>
+  <textarea id="content" placeholder="Escribe tu entrada..."></textarea>
+
+  <div class="row">
+    <button id="publish" class="btn">📤 Publicar</button>
+  </div>
+</div>
+
+<script>
+const publishBtn = document.getElementById('publish');
+publishBtn.addEventListener('click', ()=>{
+  alert('Botón funcionando ✔️');
+});
+</script>
+
+</body>
+</html>
